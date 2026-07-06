@@ -26,7 +26,7 @@ def show_ascii_intro():
  |  ___| / \ |_   _|  \/  |  / \  | \ | |
  | |_   / _ \  | | | |\/| | / _ \ |  \| |
  |  _| / ___ \ | | | |  | |/ ___ \| |\  |
- |_|  /_/   \_\|_| |_|  |_/_/   \_\_| \_|
+ |_|  /_/   \_\_|_| |_|  |_/_/   \_\_| \_|
 {CYAN}                                               
          🚀 {GREEN}FUZZY DUPLICATE MANAGER{CYAN} 🚀
          ✨ Created by: {YELLOW}PROTANX{CYAN} ✨
@@ -66,11 +66,8 @@ def get_all_files(target_dir, allowed_extensions=None):
     all_files = []
     for root, _, files in os.walk(target_dir):
         for file in files:
-            # Skip hidden system files (like .DS_Store on Mac)
             if file.startswith('.'):
                 continue
-            
-            # Apply file extension filter if one is active
             if allowed_extensions and not file.lower().endswith(allowed_extensions):
                 continue
                 
@@ -109,8 +106,8 @@ def find_fuzzy_duplicates(files_list):
     return duplicates_groups
 
 def delete_duplicates_interactive(duplicate_groups):
-    """Prompts the user to handle duplicate groups one by one with color coding."""
-    print("\n--- Duplicate Deletion Menu ---")
+    """Prompts the user to handle duplicate groups one by one with inline group-level action choices."""
+    print("\n--- Interactive Duplicate Deletion Menu ---")
     
     for group_idx, group in enumerate(duplicate_groups, start=1):
         print(f"\n[Group {group_idx}] High-similarity files found:")
@@ -129,31 +126,59 @@ def delete_duplicates_interactive(duplicate_groups):
             print(f"  [{idx}] {status} {folder_prefix}Name: {color}{filename}{RESET}")
             print(f"      Path: {path}")
             
-        print(f"  [{len(group) + 1}] Skip this group (Keep all)")
+        print(f"\n⚡ Group Options:")
+        print(f"  [1-{len(group)}] Type the index number to keep ONLY that file and delete others")
+        print(f"  [{GREEN}A{RESET}] Keep ORIGINAL file only (Auto-delete all duplicates in this group)")
+        print(f"  [{RED}N{RESET}] NUKE ALL (Delete everything in this group - original & duplicates)")
+        print(f"  [{YELLOW}S{RESET}] Skip this group (Keep all files)")
 
         while True:
-            try:
-                choice = int(input(f"Which one do you want to KEEP? (1-{len(group) + 1}): "))
-                if 1 <= choice <= len(group):
-                    keep_path = group[choice - 1][1]
+            choice = input(f"\nSelect action for Group {group_idx}: ").strip().upper()
+            
+            # Action A: Keep original, kill duplicates
+            if choice == 'A':
+                original_path = group[0][1]
+                for _, path in group:
+                    if path != original_path:
+                        os.remove(path)
+                        print(f"{RED}Deleted Duplicate:{RESET} {path}")
+                break
+                
+            # Action N: Nuke entire group
+            elif choice == 'N':
+                confirm = input(f"{RED}Are you sure you want to completely erase all files in Group {group_idx}? (y/n): {RESET}").strip().lower()
+                if confirm in ['yes', 'y']:
                     for _, path in group:
-                        if path != keep_path:
-                            os.remove(path)
-                            print(f"{RED}Deleted:{RESET} {path}")
-                    break
-                elif choice == len(group) + 1:
-                    print("Skipped group.")
+                        os.remove(path)
+                        print(f"{RED}Nuked:{RESET} {path}")
                     break
                 else:
-                    print("Invalid choice. Try again.")
-            except ValueError:
-                print("Please enter a valid number.")
+                    print("Nuke canceled. Please select an option.")
+                    
+            # Action S: Skip group
+            elif choice == 'S':
+                print("Skipped group.")
+                break
+                
+            # Fallback: Numeric index mapping
+            else:
+                try:
+                    num_choice = int(choice)
+                    if 1 <= num_choice <= len(group):
+                        keep_path = group[num_choice - 1][1]
+                        for _, path in group:
+                            if path != keep_path:
+                                os.remove(path)
+                                print(f"{RED}Deleted:{RESET} {path}")
+                        break
+                    else:
+                        print(f"{RED}Invalid file number.{RESET} Enter 1-{len(group)}, A, N, or S.")
+                except ValueError:
+                    print(f"{RED}Invalid input.{RESET} Please match one of the menu keys.")
 
 def main():
-    # Show the colorized ASCII splash intro right away
     show_ascii_intro()
 
-    # Check if a custom path was entered after the script name
     if len(sys.argv) > 1:
         target_directory = sys.argv[1]
         if not os.path.isdir(target_directory):
@@ -162,7 +187,6 @@ def main():
     else:
         target_directory = os.getcwd()
 
-    # Step 0: Choose specific media type filtering upfront
     allowed_extensions = get_file_type_filter()
 
     print(f"\nScanning target path: {target_directory}")
@@ -174,13 +198,11 @@ def main():
         print("No matching files found in this directory.")
         return
 
-    # 1. Print all file names with serial numbers and blue folder brackets
     print(f"--- Found {len(all_files)} Matching Files ---")
     for index, (filename, path) in enumerate(all_files, start=1):
         folder_name = os.path.basename(os.path.dirname(path))
         print(f"{index}. {BLUE}[{folder_name}]{RESET} {filename}")
 
-    # 2. Find and print strict fuzzy duplicates
     print("\nAnalyzing filtered file names for high similarities...")
     duplicate_groups = find_fuzzy_duplicates(all_files)
     
@@ -200,13 +222,12 @@ def main():
         filenames_str = ", ".join(colored_names)
         print(f"Group {idx} ({filenames_str}) \n-> Paths Set: {paths_set}\n")
 
-    # 3. Option to delete
     if duplicate_groups:
-        proceed = input("Would you like to manage and delete duplicates? (yes/no): ").strip().lower()
+        proceed = input("Would you like to manage and review these duplicate groups? (yes/no): ").strip().lower()
         if proceed in ['yes', 'y']:
             delete_duplicates_interactive(duplicate_groups)
         else:
-            print("No files deleted.")
+            print("Cleanup canceled. No files were altered.")
     else:
         print(f"\n{GREEN}Clean directory! No duplicate patterns matched at this threshold for selected file types.{RESET}")
 
