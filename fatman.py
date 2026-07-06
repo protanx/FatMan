@@ -26,7 +26,7 @@ def show_ascii_intro():
  |  ___| / \ |_   _|  \/  |  / \  | \ | |
  | |_   / _ \  | | | |\/| | / _ \ |  \| |
  |  _| / ___ \ | | | |  | |/ ___ \| |\  |
- |_|  /_/   \_\_|_| |_|  |_/_/   \_\_| \_|
+ |_|  /_/   \_\|_| |_|  |_/_/   \_\_| \_|
 {CYAN}                                               
          🚀 {GREEN}FUZZY DUPLICATE MANAGER{CYAN} 🚀
          ✨ Created by: {YELLOW}PROTANX{CYAN} ✨
